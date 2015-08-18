@@ -13,208 +13,165 @@ what's needed: use luigi to create task flow
 import mysql.connector
 import luigi
 import mysql_target
+from datetime import datetime
 
-# class MysqlTarget(luigi.Target):
-#     """
-#     Target for a resource in local mysql
-#     """
+mysql = mysql.connector.connect(user='', password='', host='127.0.0.1', database='yaml_practice')
 
-#     def __init__(self, mysql_connection, schema, table, key, value):
+class MysqlTarget(luigi.Target):
+    """
+    Target for a resource in local mysql
+    """
 
-#         self.connection = mysql_connection
-#         self.schema = schema
-#         self.table = table
-#         self.key = key
-#         self.value = value
+    def __init__(self, mysql_connection, key, value):
 
-
-#     def create_marker_table(self):
-
-#         connection = self.connection.connect()
-#         cursor = connection.cursor()
-#         cursor.execute(
-#             """
-#                 CREATE TABLE IF NOT EXISTS markers (
-#                     id              BIGINT(20)    NOT NULL AUTO_INCREMENT
-#                     , schema_name   VARCHAR(128)  NOT NULL
-#                     , table_name    VARCHAR(128)  NOT NULL
-#                     , mark_key      VARCHAR(128)  NOT NULL
-#                     , mark_value    VARCHAR(128)  NOT NULL
-#                     , inserted      TIMESTAMP DEFAULT NOW()
-#                     , PRIMARY KEY (id)
-#                     , KEY idx_table_mark (schema_name, table_name, mark_key)
-#                 );
-#             """)
-#         connection.commit()
-#         connection.close()
+        self.connection = mysql_connection
+        self.key = key
+        self.value = value
 
 
-#     def exists(self):
+    def create_marker_table(self):
+        print "self.connection", self.connection
 
-#         # create the marker table if it doesn't exist already
-#         self.create_marker_table()
-#         # connect to Unity
-#         connection = self.connection.connect()
-#         cursor = connection.cursor()
-#         # check that the key, value pair exists against the object of interest
-#         cursor.execute(
-#             """
-#                 SELECT 1
-#                 FROM markers
-#                 WHERE
-#                     schema_name = '{schema}'
-#                     AND table_name = '{table}'
-#                     AND mark_key = '{key}'
-#                     AND mark_value = '{value}';
-#             """.format(schema=self.schema,
-#                        table=self.table,
-#                        key=self.key,
-#                        value=self.value))
-#         row = cursor.fetchone()
-#         connection.close()
-#         return row is not None
+        connection = self.connection
+        connection.connect()
 
-
-#     def mark_table(self):
-
-#         # create the table if it doesn't already
-#         self.create_marker_table()
-#         # connect to local mysql
-#         connection = self.connection.connect()
-#         cursor = connection.cursor()
-#         # insert a mark against the table
-#         cursor.execute(
-#             """
-#                 INSERT INTO markers (schema_name, table_name, mark_key, mark_value)
-#                 VALUES ('{schema}', '{table}', '{key}', '{value}');
-#             """.format(schema=self.schema,
-#                        table=self.table,
-#                        key=self.key,
-#                        value=self.value)
-#             )
-#         connection.commit()
-#         # close the connection
-#         connection.close()
-
-
-
-class FirstTask(luigi.Task):
-    """"""
-    def output(self):
-    	return MysqlTarget(mysql_connection, 
-    						
-    						'summaries', 
-    						'python_count', 
-    						str(datetime.utcnow().date()))
-    	database, user, password, table, update_id):
-        # return square_luigi.UnityTarget(unity
-        #                                 , 'batcave_production_proxy'
-        #                                 , 'payments'
-        #                                 , 'payments_today'
-        #                                 , str(datetime.utcnow().date()))
-
-    def run(self):
-		cnx = mysql.connector.connect(user='', password='',
-                              host='127.0.0.1',
-                              database='luigid')
-
-		cursor = cnx.cursor()
+        # print "connection", connection
+        cursor = connection.cursor()
         cursor.execute(
             """
-            SELECT 1
-            FROM batcave_production_proxy.payments
-            WHERE created_at >= DATE(NOW())
-            LIMIT 1
+                CREATE TABLE IF NOT EXISTS markers (
+                    id              BIGINT(20)    NOT NULL AUTO_INCREMENT
+                    , mark_key      VARCHAR(128)  NOT NULL
+                    , mark_value    VARCHAR(128)  NOT NULL
+                    , inserted      TIMESTAMP DEFAULT NOW()
+                    , PRIMARY KEY (id)
+                );
             """)
+        self.connection.commit()
+        self.connection.close()
+
+
+    def exists(self):
+
+        # create the marker table if it doesn't exist already
+        self.create_marker_table()
+        # connect to Unity
+        connection = self.connection
+        connection.connect()
+
+        cursor = connection.cursor()
+        # check that the key, value pair exists against the object of interest
+        cursor.execute(
+            """
+                SELECT 1
+                FROM markers
+                WHERE
+                    mark_key = '{key}'
+                    AND mark_value = '{value}';
+            """.format(key=self.key,
+                       value=self.value))
         row = cursor.fetchone()
         connection.close()
+        return row is not None
 
+
+    def mark_table(self):
+
+        # create the table if it doesn't already
+        self.create_marker_table()
+        # connect to local mysql
+        connection = self.connection
+        connection.connect()
+        cursor = connection.cursor()
+        # insert a mark against the table
+        cursor.execute(
+            """
+                INSERT INTO markers (mark_key, mark_value)
+                VALUES ('{key}', '{value}');
+            """.format(key=self.key,
+                       value=self.value)
+            )
+        connection.commit()
+        # close the connection
+        connection.close()
+
+
+
+class StoryCount(luigi.Task):
+    """"""
+    # cnx = mysql.connector.connect(user='', password='',
+    #                             host='127.0.0.1',
+    #                             database='yaml_practice')
+    # print "cnx = ", cnx
+    # print "self.cnx =", self.cnx
+    print "mysql =", mysql
+
+    date = luigi.DateParameter()
+    def output(self):
+    	return MysqlTarget(mysql, 
+                            'children_stories_count',
+    						self.date)
+
+    def run(self):
+        connection = mysql
+        connection.connect()
+
+        cursor = connection.cursor()
+        print "I am running"
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM children_stories
+            WHERE style="Nursery Rhyme"
+            """)
+        row = cursor.fetchone()
+        count = row[0]
+
+        cursor.execute(
+            """
+            INSERT into 
+            children_stories_count (quantity, updated)
+            VALUES (%s, %s)
+            """, (count, "2015-08-14"))
+        connection.commit()
+        connection.close()
+
+        print "row =", row
         if row is None:
             return
         else:
-            mark = square_luigi.UnityTarget(unity
-                                        , 'batcave_production_proxy'
-                                        , 'payments'
-                                        , 'payments_today'
-                                        , str(datetime.utcnow().date()))
+            print "I made it here"
+            mark = self.output()
             mark.mark_table()
             return
 
-def create_data(): 
-	cnx = mysql.connector.connect(user='', password='',
-                              host='127.0.0.1',
-                              database='luigid')
-
-	cursor = cnx.cursor()
-	# cursor.execute(
- #        """
- #        SELECT *
- #        FROM original
- #        WHERE subject="Python"
- #        """)
-	# rows = cursor.fetchall() # This works
-
-	cursor.execute(
-        """
-        INSERT into
-        subject_summary
-        VALUES ("Python", 13, '2015-08-12')
-        """)
-	cnx.commit()
-	cnx.close()
 
 
-create_data()
+# def compute_and_insert_count_data(): 
+# 	cnx = mysql.connector.connect(user='', password='',
+#                               host='127.0.0.1',
+#                               database='yaml_practice')
 
-def compute_and_insert_count_data(): 
-	cnx = mysql.connector.connect(user='', password='',
-                              host='127.0.0.1',
-                              database='luigid')
+# 	cursor = cnx.cursor()
+# 	cursor.execute(
+#         """
+#         SELECT COUNT(*)
+#         FROM children_stories
+#         WHERE style="Nursery Rhyme"
+#         """)
+# 	row = cursor.fetchone()
+# 	count = row[0]
 
-	cursor = cnx.cursor()
-	cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM original
-        WHERE subject="Python"
-        """)
-	row = cursor.fetchone()
-	count = row[0]
-
-	cursor.execute(
-        """
-        INSERT into 
-        subject_summary (subject, quantity, updated)
-        VALUES (%s, %s, %s)
-        """, ("Python", count, "2015-08-12"))
-	cnx.commit()
-	cnx.close()
+# 	cursor.execute(
+#         """
+#         INSERT into 
+#         children_stories_count (quantity, updated)
+#         VALUES (%s, %s)
+#         """, (count, "2015-08-12"))
+# 	cnx.commit()
+# 	cnx.close()
 
 # compute_and_insert_count_data()
 
-
-def copy_data_to_diff_table(): #reads data from one table and writes some fields (not all) to a new table
-	cnx = mysql.connector.connect(user='', password='',
-                              host='127.0.0.1',
-                              database='luigid')
-
-	cursor = cnx.cursor()
-	count = extract_data()
-
-	cursor.execute("""
-        INSERT INTO book_topic_summary (
-            label
-            , quantity
-            , updated
-        )
-        SELECT
-            label
-            , quantity
-            , updated
-        FROM original
-        ;
-        """)
-	cnx.commit()
-	cnx.close()
-
-# copy_data_to_diff_table()
+if __name__ == "__main__":
+    luigi.run()
