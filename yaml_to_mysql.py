@@ -1,6 +1,8 @@
 import yaml
 import mysql.connector
 
+etl_yaml_files = ["hickory.yaml", "mice.yaml", "sheep.yaml"]
+
 class YamlData():
 	def __init__(self, name, style, description, quantity):
 		self.name = name
@@ -24,17 +26,17 @@ cursor.execute("""
 			description VARCHAR(20), 
 			quantity INT(10))
 			""")
+for etl in etl_yaml_files: 
+	with open(etl, 'r') as ymlfile:
+	    data = yaml.load(ymlfile)
+	    yd =YamlData(name=data['name'], style=data['style'], description=data['description'], quantity=data['quantity'])
 
-with open("hickory.yaml", 'r') as ymlfile:
-    data = yaml.load(ymlfile)
-    yd =YamlData(name=data['name'], style=data['style'], description=data['description'], quantity=data['quantity'])
-
-cursor.execute("""
-	INSERT INTO 
-	children_stories (name, style, description, quantity)
-	VALUES (%s, %s, %s, %s) 
-	""", (yd.name, yd.style, yd.description, yd.quantity))
-cnx.commit()
+	cursor.execute("""
+		INSERT INTO 
+		children_stories (name, style, description, quantity)
+		VALUES (%s, %s, %s, %s) 
+		""", (yd.name, yd.style, yd.description, yd.quantity))
+	cnx.commit()
 cnx.close()
 
 
