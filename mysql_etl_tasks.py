@@ -15,16 +15,14 @@ import luigi
 import mysql_target
 from datetime import datetime
 
-mysql = mysql.connector.connect(user='', password='', host='127.0.0.1', database='yaml_practice')
-
 class MysqlTarget(luigi.Target):
     """
     Target for a resource in local mysql
     """
 
-    def __init__(self, mysql_connection, key, value):
+    def __init__(self, key, value):
 
-        self.connection = mysql_connection
+        self.connection = mysql.connector.connect(user='', password='', host='127.0.0.1', database='yaml_practice')
         self.key = key
         self.value = value
 
@@ -32,11 +30,8 @@ class MysqlTarget(luigi.Target):
     def create_marker_table(self):
         print "self.connection", self.connection
 
-        connection = self.connection
-        connection.connect()
-
         # print "connection", connection
-        cursor = connection.cursor()
+        cursor = self.connection.cursor()
         cursor.execute(
             """
                 CREATE TABLE IF NOT EXISTS markers (
@@ -56,12 +51,7 @@ class MysqlTarget(luigi.Target):
         # create the marker table if it doesn't exist already
         self.create_marker_table()
         # connect to Unity
-        connection = self.connection
-        connection.connect()
-
-        cursor = connection.cursor()
-        # check that the key, value pair exists against the object of interest
-        cursor.execute(
+        row = self.execute(
             """
                 SELECT 1
                 FROM markers
@@ -70,8 +60,6 @@ class MysqlTarget(luigi.Target):
                     AND mark_value = '{value}';
             """.format(key=self.key,
                        value=self.value))
-        row = cursor.fetchone()
-        connection.close()
         return row is not None
 
 
@@ -80,67 +68,52 @@ class MysqlTarget(luigi.Target):
         # create the table if it doesn't already
         self.create_marker_table()
         # connect to local mysql
-        connection = self.connection
-        connection.connect()
-        cursor = connection.cursor()
         # insert a mark against the table
-        cursor.execute(
+        self.execute(
             """
                 INSERT INTO markers (mark_key, mark_value)
                 VALUES ('{key}', '{value}');
             """.format(key=self.key,
                        value=self.value)
             )
-        connection.commit()
+        
+    def execute(self, sql):
+        self.connection.connect()
+        cursor = self.connection.cursor()
+        cursor.execute(sql)
+        row = cursor.fetchone()
+        self.connection.commit()
         # close the connection
-        connection.close()
+        self.connection.close()
+        return row
 
-
-
+        
 class StoryCount(luigi.Task):
     """"""
-    # cnx = mysql.connector.connect(user='', password='',
-    #                             host='127.0.0.1',
-    #                             database='yaml_practice')
-    # print "cnx = ", cnx
-    # print "self.cnx =", self.cnx
-    print "mysql =", mysql
-
     date = luigi.DateParameter()
+
     def output(self):
-    	return MysqlTarget(mysql, 
-                            'children_stories_count',
-    						self.date)
+    	return MysqlTarget('children_stories_count', self.date)
 
     def run(self):
-        connection = mysql
-        connection.connect()
-
-        cursor = connection.cursor()
-        print "I am running"
-        cursor.execute(
+        row = self.output().execute(
             """
             SELECT COUNT(*)
             FROM children_stories
             WHERE style="Nursery Rhyme"
             """)
-        row = cursor.fetchone()
         count = row[0]
 
-        cursor.execute(
+        self.output().execute(
             """
             INSERT into 
             children_stories_count (quantity, updated)
-            VALUES (%s, %s)
-            """, (count, "2015-08-14"))
-        connection.commit()
-        connection.close()
-
-        print "row =", row
+            VALUES ({quantity}, '{updated}')
+            """.format(quantity=count, updated="2015-08-14"))
+        
         if row is None:
             return
         else:
-            print "I made it here"
             mark = self.output()
             mark.mark_table()
             return
