@@ -56,6 +56,14 @@ def copy_data_to_diff_table(): #reads data from one table and writes some fields
 # copy_data_to_diff_table()
 
 
+#Incomplete
+# class CheckForNullQuantity(luigi.Task):
+#     def output(self):
+#         return Markers('check_null', 'date_checked')
+
+#     def run(self):
+#         self.output().execute(
+#             """ """)
 
 
 
