@@ -1,36 +1,16 @@
-"""
-local database: luigid, table: original
-
-read data from original, summarize and insert into summarized
-
-
-what's working: insert data, copy data to new table
-		taking summarized data and inserting into new table
-what's needed: use luigi to create task flow
-"""
-
-
 import mysql.connector
 import luigi
+import time
 import mysql_target
 from datetime import datetime
 
-class MysqlTarget(luigi.Target):
-    """
-    Target for a resource in local mysql
-    """
-
+class Markers(luigi.Target):
     def __init__(self, key, value):
-
         self.connection = mysql.connector.connect(user='', password='', host='127.0.0.1', database='yaml_practice')
         self.key = key
         self.value = value
 
-
     def create_marker_table(self):
-        print "self.connection", self.connection
-
-        # print "connection", connection
         cursor = self.connection.cursor()
         cursor.execute(
             """
@@ -47,10 +27,7 @@ class MysqlTarget(luigi.Target):
 
 
     def exists(self):
-
-        # create the marker table if it doesn't exist already
         self.create_marker_table()
-        # connect to Unity
         row = self.execute(
             """
                 SELECT 1
@@ -62,13 +39,8 @@ class MysqlTarget(luigi.Target):
                        value=self.value))
         return row is not None
 
-
     def mark_table(self):
-
-        # create the table if it doesn't already
         self.create_marker_table()
-        # connect to local mysql
-        # insert a mark against the table
         self.execute(
             """
                 INSERT INTO markers (mark_key, mark_value)
@@ -83,25 +55,59 @@ class MysqlTarget(luigi.Target):
         cursor.execute(sql)
         row = cursor.fetchone()
         self.connection.commit()
-        # close the connection
         self.connection.close()
         return row
 
-        
-class StoryCount(luigi.Task):
-    """"""
+class MakeDateColumnOnChildrenStories(luigi.Task):
+    def output(self):
+        return Markers('make_new_column', 'date_column_in_children_stories')
+
+    def run(self):
+        self.output().execute(
+            """
+            ALTER TABLE
+            children_stories
+            ADD date datetime
+            """
+        )
+        mark = self.output()
+        mark.mark_table()
+
+class Story(luigi.Task):
     date = luigi.DateParameter()
 
+    def requires(self):
+        return MakeDateColumnOnChildrenStories()
+
     def output(self):
-    	return MysqlTarget('children_stories_count', self.date)
+        return Markers('children_story', self.date)
 
     def run(self):
         row = self.output().execute(
             """
-            SELECT COUNT(*)
-            FROM children_stories
-            WHERE style="Nursery Rhyme"
-            """)
+            INSERT INTO
+            children_stories
+            (name, date)
+            VALUES
+            ("Hickory Dickory Dock", '{date}')
+            """.format(date=self.date))
+
+        mark = self.output()
+        mark.mark_table()
+        
+
+class StoryCount(luigi.Task):
+    """"""
+    date_interval = luigi.DateIntervalParameter()
+
+    def requires(self):
+        return [Story(date) for date in self.date_interval]
+
+    def output(self):
+    	return Markers('children_stories_count', self.date_interval)
+
+    def run(self):
+        row = self.output().execute(self.read_sql())
         count = row[0]
 
         self.output().execute(
@@ -117,34 +123,30 @@ class StoryCount(luigi.Task):
             mark = self.output()
             mark.mark_table()
             return
+"""
+# filename: all.yaml
+dependencies:
+  - yesterday
+  - today
+  - tomorrow
+sql: "SELECT * FROM days"
+# filename: yesterday.yaml
+sql: "INSERT INTO days (name) VALUES ('yesterday')"
+# filename: today.yaml
+sql: "INSERT INTO days (name) VALUES ('today')"
+# filename: tomorrow.yaml
+sql: "INSERT INTO days (name) VALUES ('tomorrow')"
+"""
 
+class YamlPoweredTask(luigi.Task):
+    file_name = ""
+    yaml = dict() #somehow_read_yaml()
 
+    def requires(self):
+        return [YamlPoweredTask(file_name=dependency) for dependency in self.yaml['dependencies']]
 
-# def compute_and_insert_count_data(): 
-# 	cnx = mysql.connector.connect(user='', password='',
-#                               host='127.0.0.1',
-#                               database='yaml_practice')
-
-# 	cursor = cnx.cursor()
-# 	cursor.execute(
-#         """
-#         SELECT COUNT(*)
-#         FROM children_stories
-#         WHERE style="Nursery Rhyme"
-#         """)
-# 	row = cursor.fetchone()
-# 	count = row[0]
-
-# 	cursor.execute(
-#         """
-#         INSERT into 
-#         children_stories_count (quantity, updated)
-#         VALUES (%s, %s)
-#         """, (count, "2015-08-12"))
-# 	cnx.commit()
-# 	cnx.close()
-
-# compute_and_insert_count_data()
+    def run(self):
+        execute(self.yaml['sql'])
 
 if __name__ == "__main__":
     luigi.run()
