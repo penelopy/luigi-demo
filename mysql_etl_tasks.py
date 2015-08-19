@@ -107,7 +107,7 @@ class StoryCount(luigi.Task):
     	return Markers('children_stories_count', self.date_interval)
 
     def run(self):
-        row = self.output().execute(self.read_sql("story_count.yaml"))
+        self.output().execute(self.read_sql("story_count.yaml"))
         # count = row[0]
 
         # self.output().execute(
@@ -117,12 +117,10 @@ class StoryCount(luigi.Task):
         #     VALUES ({quantity}, '{updated}')
         #     """.format(quantity=count, updated="2015-08-14"))
         
-        if row is None:
-            return
-        else:
-            mark = self.output()
-            mark.mark_table()
-            return
+
+        mark = self.output()
+        mark.mark_table()
+        return           
 
     def read_sql(self, filename):
         with open(filename, 'r') as ymlfile:

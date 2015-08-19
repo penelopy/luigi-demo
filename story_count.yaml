@@ -1,1 +1,1 @@
-sql: INSERT into children_stories_count (quantity, updated) VALUES ({quantity}, '{updated}') """.format(quantity=4, updated="2015-08-14"))
+sql: INSERT into children_stories_count (quantity, updated) VALUES ("4", "2015-08-19")

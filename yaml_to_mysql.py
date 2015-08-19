@@ -37,6 +37,14 @@ for etl in etl_yaml_files:
 		VALUES (%s, %s, %s, %s) 
 		""", (yd.name, yd.style, yd.description, yd.quantity))
 	cnx.commit()
+
+def read_sql(filename):
+    with open(filename, 'r') as ymlfile:
+        data = yaml.load(ymlfile)
+        print "sql=", data['sql']
+        cursor.execute("""data['sql']""")
+        cnx.commit()
+read_sql("story_count.yaml")	
 cnx.close()
 
 
