@@ -1,7 +1,7 @@
 import mysql.connector
 import luigi
 import time
-import mysql_target
+import yaml
 from datetime import datetime
 
 class Markers(luigi.Target):
@@ -107,15 +107,15 @@ class StoryCount(luigi.Task):
     	return Markers('children_stories_count', self.date_interval)
 
     def run(self):
-        row = self.output().execute(self.read_sql())
-        count = row[0]
+        row = self.output().execute(self.read_sql("story_count.yaml"))
+        # count = row[0]
 
-        self.output().execute(
-            """
-            INSERT into 
-            children_stories_count (quantity, updated)
-            VALUES ({quantity}, '{updated}')
-            """.format(quantity=count, updated="2015-08-14"))
+        # self.output().execute(
+        #     """
+        #     INSERT into 
+        #     children_stories_count (quantity, updated)
+        #     VALUES ({quantity}, '{updated}')
+        #     """.format(quantity=count, updated="2015-08-14"))
         
         if row is None:
             return
@@ -123,30 +123,23 @@ class StoryCount(luigi.Task):
             mark = self.output()
             mark.mark_table()
             return
-"""
-# filename: all.yaml
-dependencies:
-  - yesterday
-  - today
-  - tomorrow
-sql: "SELECT * FROM days"
-# filename: yesterday.yaml
-sql: "INSERT INTO days (name) VALUES ('yesterday')"
-# filename: today.yaml
-sql: "INSERT INTO days (name) VALUES ('today')"
-# filename: tomorrow.yaml
-sql: "INSERT INTO days (name) VALUES ('tomorrow')"
-"""
 
-class YamlPoweredTask(luigi.Task):
-    file_name = ""
-    yaml = dict() #somehow_read_yaml()
+    def read_sql(self, filename):
+        with open(filename, 'r') as ymlfile:
+            data = yaml.load(ymlfile)
+            self.output().execute(data['sql'])
+                
 
-    def requires(self):
-        return [YamlPoweredTask(file_name=dependency) for dependency in self.yaml['dependencies']]
 
-    def run(self):
-        execute(self.yaml['sql'])
+# class YamlPoweredTask(luigi.Task):
+#     file_name = ""
+#     yaml = dict()#somehow_read_yaml()
+
+#     def requires(self):
+#         return [YamlPoweredTask(file_name=dependency) for dependency in self.yaml['dependencies']]
+
+#     def run(self):
+#         execute(self.yaml['sql'])
 
 if __name__ == "__main__":
     luigi.run()

@@ -54,3 +54,43 @@ def copy_data_to_diff_table(): #reads data from one table and writes some fields
 	cnx.close()
 
 # copy_data_to_diff_table()
+
+""" Testing these concepts
+"""
+import yaml
+
+def read_sql(filename):
+	with open(filename, 'r') as ymlfile:
+	    data = yaml.load(ymlfile)
+	    print data['sql']
+
+
+read_sql("story_count.yaml")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
