@@ -29,7 +29,7 @@ class Seeds(luigi.Task):
         return Markers(self.__class__.__name__, 'inserted_date')
 
     def run(self):
-        yaml_seed_files = ["hubbard.yaml", "humpty.yaml", "rockabye.yaml", "littleboy.yaml", "crooked.yaml", "lamb.yaml", "twinkle.yaml", "winkle.yaml", "teepot.yaml", "georgie.yaml", "baa.yaml"]
+        yaml_seed_files = ["seed_files/hubbard.yaml", "seed_files/humpty.yaml", "seed_files/rockabye.yaml", "seed_files/littleboy.yaml", "seed_files/crooked.yaml", "seed_files/lamb.yaml", "seed_files/twinkle.yaml", "seed_files/winkle.yaml", "seed_files/teepot.yaml", "seed_files/georgie.yaml", "seed_files/baa.yaml"]
         Db.execute(
             """
                 CREATE TABLE IF NOT EXISTS stories (
@@ -46,8 +46,6 @@ class Seeds(luigi.Task):
         for filename in yaml_seed_files:
             with open(filename, 'r') as ymlfile:
                 data = yaml.load(ymlfile)
-                # print data
-                # return Db.execute(data['sql'])
             Db.execute(
             """
                 INSERT INTO stories (title, full_text, first_word, last_word, word_count, rating)
@@ -59,15 +57,6 @@ class Seeds(luigi.Task):
                        word_count=data['word_count'],
                        rating=data['rating'] )
             )
-
-#         with open('rhymes.csv', 'rU') as csvfile:
-#             datareader = csv.reader(csvfile, delimiter=',', dialect=csv.excel_tab)
-#             for fields in datareader:
-#                 Db.execute(
-#                     """
-#                         INSERT INTO stories (full_text, first_word, last_word, word_count, rating)
-#                         VALUES (full_text, first_word, last_word, word_count, rating);
-#                     """.format(full_text=fields[0], first_word=fields[1], last_word=fields[2], word_count=fields[3], rating=fields[4]))
 
 class Markers(luigi.Target):
     def __init__(self, key, value):
@@ -126,26 +115,6 @@ class MakeDateColumnOnChildrenStories(luigi.Task):
         mark = self.output()
         mark.mark_table()
 
-# class Story(luigi.Task):
-#     date = luigi.DateParameter()
-
-#     def requires(self):
-#         return MakeDateColumnOnChildrenStories()
-
-#     def output(self):
-#         return Markers('children_story', self.date)
-
-#     # def read_sql(self, filename):
-#     #     with open(filename, 'r') as ymlfile:
-#     #         data = yaml.load(ymlfile)
-#     #         self.output().execute(data['sql'])  
-
-#     def run(self):
-#         s = Db.execute_yaml_file("todays_top_story.yaml") #FIX tried using self.output().read_sql but...
-#         mark = self.output()
-#         mark.mark_table()
-
-  
 class StoryCount(luigi.Task):
     date_interval = luigi.DateIntervalParameter()
     yaml_files = ["story_count.yaml", "todays_top_story.yaml"]
@@ -162,18 +131,6 @@ class StoryCount(luigi.Task):
         mark = self.output()
         mark.mark_table()
         return
-                
-
-
-# class YamlPoweredTask(luigi.Task):
-#     file_name = ""
-#     yaml = dict()#somehow_read_yaml()
-
-#     def requires(self):
-#         return [YamlPoweredTask(file_name=dependency) for dependency in self.yaml['dependencies']]
-
-#     def run(self):
-#         execute(self.yaml['sql'])
 
 if __name__ == "__main__":
     luigi.run()

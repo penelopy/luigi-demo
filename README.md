@@ -1,5 +1,5 @@
 ## What is Luigi?  
-Luigi is an open-source framework for building data pipelines, and managing workflows. It handles dependency management and helps with scheduling complex batch jobs.
+Luigi is an open-source framework for building data pipelines, and managing workflows. It handles dependency management and helps with scheduling complex batch jobs.  
 See https://github.com/spotify/luigi
 
 Scheduling and running ETLs is a great use case for Luigi. 
@@ -9,8 +9,9 @@ Scheduling and running ETLs is a great use case for Luigi.
  * Download and install mysql.connector https://dev.mysql.com/downloads/connector/python/  
  * `pip install mysql-connector-python --allow-external mysql-connector-python`  
  * `mysql.server start`  
- *  Open local mysql `mysql 
- * `create database `  
+ *  Open local mysql `mysql `
+ * `create database luigi_db`
+ * `use luigi_db`
  * `create table children_stories_count  (name VARCHAR(20), quantity INT(10), updated DATE);`
 
 **PyYaml Installation**
