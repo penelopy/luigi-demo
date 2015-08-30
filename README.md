@@ -10,8 +10,8 @@ Scheduling and running ETLs is a great use case for Luigi.
  * `pip install mysql-connector-python --allow-external mysql-connector-python`  
  * `mysql.server start`  
  *  Open local mysql `mysql `
- * `create database luigi_db`
- * `use luigi_db`
+ * `create database luigi_db;`
+ * `use luigi_db;`
  * `create table children_stories_count  (name VARCHAR(20), quantity INT(10), updated DATE);`
 
 **PyYaml Installation**
