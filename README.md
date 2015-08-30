@@ -27,6 +27,7 @@ This demo creates and seeds a local mysql database by reading and parsing multip
 Start the first ETL  
 `python mysql_etl_tasks.py StoryCount 2015-08-20-2015-08-30`  
 
-The class 'StoryCount' requires an instance of the class 'Markers' which will generate a mark on the Marker table every time 'StoryCount' is run
+The class 'StoryCount' requires an instance of the class 'Markers' which will insert a mark in the Marker table every time 'StoryCount' is run
 
 ###To Do
+Building off the StoryCount create additional ETL that extract and transform data, and insert a mark in the marker table when complete.
